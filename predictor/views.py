@@ -16,25 +16,50 @@ from .models import Prediction, ChatHistory
 def predict(request):
     area = request.data.get('area')
     bedrooms = request.data.get('bedrooms')
+    bathrooms = request.data.get('bathrooms')
+    floors = request.data.get('floors')
+    year_built = request.data.get('year_built')
+    condition = request.data.get('condition')
+    garage = request.data.get('garage')
     location = request.data.get('location')
     property_type = request.data.get('property_type')
 
-    if not area or not bedrooms or not location or not property_type:
+    if not all([area, bedrooms, bathrooms, floors, year_built, condition, garage, location, property_type]):
         return Response({"error": "Missing data"}, status=400)
 
     try:
         area = float(area)
         bedrooms = int(bedrooms)
+        bathrooms = int(bathrooms)
+        floors = int(floors)
+        year_built = int(year_built)
     except ValueError:
         return Response({"error": "Invalid input type"}, status=400)
 
-    price = predict_price(area, bedrooms, location, property_type)
+    garage_flag = str(garage).strip().lower() in ["yes", "true", "1", "y"]
+
+    price = predict_price(
+        area,
+        bedrooms,
+        location=location,
+        property_type=property_type,
+        bathrooms=bathrooms,
+        floors=floors,
+        year_built=year_built,
+        condition=condition,
+        garage=garage_flag,
+    )
 
     # SAVE to DB
     Prediction.objects.create(
         user=request.user,
         area=area,
         bedrooms=bedrooms,
+        bathrooms=bathrooms,
+        floors=floors,
+        year_built=year_built,
+        condition=condition,
+        garage=garage_flag,
         location=location,
         property_type=property_type,
         predicted_price=price
